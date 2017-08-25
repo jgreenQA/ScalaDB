@@ -38,14 +38,22 @@ object Main extends App {
   def runQuery = {
     val insertPeople = Future {
       val query = peopleTable ++= Seq(
-        (10, "Jack", "Wood", 36, "1 Test St"),
-        (20, "Tim", "Brown", 24, "2 Test St")
+        (10, "Tim", "Wood", 36, "1 Test St"),
+        (20, "Jack", "Brown", 24, "2 Test St"),
+        (30, "John", "Brown", 48, "3 Test St"),
+        (40, "Jack", "Wood", 36, "4 Test St"),
+        (50, "Tim", "Brown", 24, "5 Test St"),
+        (60, "Jack", "Brown", 48, "6 Test St"),
+        (70, "Jack", "Brown", 48, "6 Test St"),
+        (80, "John", "Brown", 48, "6 Test St"),
+        (90, "John", "Brown", 48, "6 Test St"),
+        (100, "Jack", "Brown", 48, "6 Test St")
       )
       println(query.statements.head)
       db.run(query)
     }
     Await.result(insertPeople, Duration.Inf).andThen {
-      case Success(_) => updatePeople(1, "Jack", "Wood", 46, "3 Test St")
+      case Success(_) => updatePeople(1, "Jack", "Wood", 46, "4 Test St")
       case Failure(error) => println(s"Inserting people failed due to: ${error.getMessage}")
     }
   }
@@ -140,9 +148,10 @@ object Main extends App {
     listPeople
 
     val commonFnameFuture = Future {
-      val query = peopleTable.groupBy(p => p.fName)
-        .map{ case (fname, group) => (fname, group.map(_.fName).countDistinct) }
-        .result
+      val query = peopleTable.groupBy(_.fName)
+        .map{ case (fname, group) => (fname, group.map(_.fName).length) }
+        .sortBy(_._2.desc)
+        .result.head
 
       println(query.statements.head)
       db.run(query)
@@ -159,14 +168,35 @@ object Main extends App {
     listPeople
 
     val commonLnameFuture = Future {
-      val query = peopleTable.groupBy(p => p.lName)
-        .map{ case (lName, group) => (lName, group.map(_.lName).countDistinct) }
-        .result
+      val query = peopleTable.groupBy(_.lName)
+        .map{ case (lName, group) => (lName, group.map(_.lName).length) }
+        .sortBy(_._2.desc)
+        .result.head
 
       println(query.statements.head)
       db.run(query)
     }
     Await.result(commonLnameFuture, Duration.Inf).andThen {
+      case Success(res) =>
+        println(res)
+        commonAddressPeople
+      case Failure(error) => println(s"Selecting people failed due to: ${error.getMessage}")
+    }
+  }
+
+  def commonAddressPeople = {
+    listPeople
+
+    val commonAddressFuture = Future {
+      val query = peopleTable.groupBy(p => p.address)
+        .map{ case (address, group) => (address, group.map(_.address).length) }
+        .sortBy(_._2.desc)
+        .result.head
+
+      println(query.statements.head)
+      db.run(query)
+    }
+    Await.result(commonAddressFuture, Duration.Inf).andThen {
       case Success(res) => println(res)
       case Failure(error) => println(s"Selecting people failed due to: ${error.getMessage}")
     }
