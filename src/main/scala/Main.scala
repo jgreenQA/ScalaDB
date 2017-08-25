@@ -38,22 +38,22 @@ object Main extends App {
   def runQuery = {
     val insertPeople = Future {
       val query = peopleTable ++= Seq(
-        (10, "Tim", "Wood", 36, "1 Test St"),
-        (20, "Jack", "Brown", 24, "2 Test St"),
-        (30, "John", "Brown", 48, "3 Test St"),
-        (40, "Jack", "Wood", 36, "4 Test St"),
-        (50, "Tim", "Brown", 24, "5 Test St"),
-        (60, "Jack", "Brown", 48, "6 Test St"),
-        (70, "Jack", "Brown", 48, "6 Test St"),
-        (80, "John", "Brown", 48, "6 Test St"),
-        (90, "John", "Brown", 48, "6 Test St"),
-        (100, "Jack", "Brown", 48, "6 Test St")
+        (10, "Tim", "Wood", 36, "1", "Testing Ln", "Testville"),
+        (20, "Jack", "Brown", 24, "2", "Test St", "Testington"),
+        (30, "John", "Brown", 48, "3", "Testing Ln", "Testville"),
+        (40, "Jack", "Wood", 36, "4", "Test St", "Testington"),
+        (50, "Tim", "Brown", 24, "5", "Test St", "Testington"),
+        (60, "Jack", "Brown", 48, "6", "Testing Ln", "Testville"),
+        (70, "Jack", "Brown", 48, "6", "Test St", "Testington"),
+        (80, "John", "Brown", 48, "6", "Testing Ln", "Testville"),
+        (90, "John", "Brown", 48, "6", "Test St", "Testington"),
+        (100, "Jack", "Brown", 48, "6", "Test St", "Testington")
       )
       println(query.statements.head)
       db.run(query)
     }
     Await.result(insertPeople, Duration.Inf).andThen {
-      case Success(_) => updatePeople(1, "Jack", "Wood", 46, "4 Test St")
+      case Success(_) => updatePeople(1, "Jack", "Wood", 46, "4", "Test St", "Testington")
       case Failure(error) => println(s"Inserting people failed due to: ${error.getMessage}")
     }
   }
@@ -61,7 +61,7 @@ object Main extends App {
   def listPeople = {
     val queryFuture = Future {
       db.run(peopleTable.result).map(_.foreach {
-        case (id, fName, lName, age, address) => println(s"$id $fName $lName $age $address")
+        case (id, fName, lName, age, house, street, city) => println(s"$id $fName $lName $age $house $street $city")
       })
     }
     Await.result(queryFuture, Duration.Inf).andThen {
@@ -70,11 +70,11 @@ object Main extends App {
     }
   }
 
-  def updatePeople(searchId: Int, fname: String, lname: String, age: Int, address: String) = {
+  def updatePeople(searchId: Int, fname: String, lname: String, age: Int, house: String,  street: String, city: String) = {
     listPeople
 
     val updateFuture = Future {
-      val query = peopleTable.filter(_  .id === searchId).update(searchId, fname, lname, age, address)
+      val query = peopleTable.filter(_  .id === searchId).update(searchId, fname, lname, age, house, street, city)
       println(query.statements.head)
       db.run(query)
     }
@@ -103,7 +103,7 @@ object Main extends App {
 
     val queryFuture = Future {
       db.run(peopleTable.result).map(_.foreach {
-        case (id, fName, lName, age, address) if id == searchId => println(s"$id $fName $lName $age $address")
+        case (id, fName, lName, age, house, street, city) if id == searchId => println(s"$id $fName $lName $age $house $street $city")
       })
     }
     Await.result(queryFuture, Duration.Inf).andThen {
@@ -179,24 +179,24 @@ object Main extends App {
     Await.result(commonLnameFuture, Duration.Inf).andThen {
       case Success(res) =>
         println(res)
-        commonAddressPeople
+        commonCityPeople
       case Failure(error) => println(s"Selecting people failed due to: ${error.getMessage}")
     }
   }
 
-  def commonAddressPeople = {
+  def commonCityPeople = {
     listPeople
 
-    val commonAddressFuture = Future {
-      val query = peopleTable.groupBy(p => p.address)
-        .map{ case (address, group) => (address, group.map(_.address).length) }
+    val commonCityFuture = Future {
+      val query = peopleTable.groupBy(p => p.city)
+        .map{ case (city, group) => (city, group.map(_.city).length) }
         .sortBy(_._2.desc)
         .result.head
 
       println(query.statements.head)
       db.run(query)
     }
-    Await.result(commonAddressFuture, Duration.Inf).andThen {
+    Await.result(commonCityFuture, Duration.Inf).andThen {
       case Success(res) => println(res)
       case Failure(error) => println(s"Selecting people failed due to: ${error.getMessage}")
     }
